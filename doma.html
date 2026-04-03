@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>多瑪飛地物資計算機</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f5f7;
+            color: #333;
+            line-height: 1.6;
+            padding: 20px;
+        }
+        .container {
+            max-width: 500px;
+            margin: 0 auto;
+            background: #fff;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+        h2 {
+            text-align: center;
+            color: #2c3e50;
+            margin-top: 0;
+        }
+        .form-group {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #eee;
+        }
+        .form-group label {
+            font-weight: 500;
+        }
+        .form-group input {
+            width: 100px;
+            padding: 6px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            text-align: right;
+            font-size: 16px;
+        }
+        .settings {
+            background-color: #eef2f5;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            margin-top: 20px;
+        }
+        .settings .form-group {
+            border-bottom: none;
+            margin-bottom: 8px;
+        }
+        button {
+            width: 100%;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 12px;
+            font-size: 16px;
+            font-weight: bold;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+        #results {
+            margin-top: 20px;
+        }
+        .solution-card {
+            background: #fdfdfd;
+            border-left: 5px solid #2ecc71;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 4px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+        .solution-card h3 {
+            margin-top: 0;
+            color: #27ae60;
+            font-size: 18px;
+            margin-bottom: 10px;
+        }
+        .solution-card ul {
+            margin: 0;
+            padding-left: 20px;
+        }
+        .warning {
+            color: #e74c3c;
+            font-weight: bold;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>💰 多瑪飛地最佳化計算機</h2>
+
+    <div>
+        <div class="form-group">
+            <label>亞拉戈白金幣 (價值 10,000)</label>
+            <input type="number" id="c10000" min="0" value="0">
+        </div>
+        <div class="form-group">
+            <label>亞拉戈金幣 (價值 2,500)</label>
+            <input type="number" id="c2500" min="0" value="0">
+        </div>
+        <div class="form-group">
+            <label>亞拉戈銀幣 (價值 500)</label>
+            <input type="number" id="c500" min="0" value="0">
+        </div>
+        <div class="form-group">
+            <label>亞拉戈銅幣 (價值 100)</label>
+            <input type="number" id="c100" min="0" value="0">
+        </div>
+        <div class="form-group">
+            <label>亞拉戈錫幣 (價值 25)</label>
+            <input type="number" id="c25" min="0" value="0">
+        </div>
+    </div>
+
+    <div class="settings">
+        <div class="form-group">
+            <label>📊 週預算上限</label>
+            <input type="number" id="budget" min="1" value="25000">
+        </div>
+        <div class="form-group">
+            <label>📈 價格比率 (%)</label>
+            <input type="number" id="ratio" min="100" value="200">
+        </div>
+    </div>
+
+    <button onclick="calculate()">計算最佳 Top 3 方案</button>
+
+    <div id="results"></div>
+</div>
+
+<script>
+function calculate() {
+    // 取得輸入值
+    const counts = [
+        parseInt(document.getElementById('c10000').value) || 0,
+        parseInt(document.getElementById('c2500').value) || 0,
+        parseInt(document.getElementById('c500').value) || 0,
+        parseInt(document.getElementById('c100').value) || 0,
+        parseInt(document.getElementById('c25').value) || 0
+    ];
+    
+    const budget = parseInt(document.getElementById('budget').value) || 25000;
+    const ratio = parseFloat(document.getElementById('ratio').value) || 200;
+    
+    const baseValues = [10000, 2500, 500, 100, 25];
+    const multiplier = ratio / 100;
+    const effValues = baseValues.map(v => v * multiplier); // 計算收購加成後的實際價值
+
+    const resultsDiv = document.getElementById('results');
+    resultsDiv.innerHTML = '<p style="text-align:center;">計算中...</p>';
+
+    // 檢查總資產是否足夠
+    let totalPossibleSum = counts.reduce((sum, count, i) => sum + count * effValues[i], 0);
+    if (totalPossibleSum < budget) {
+        resultsDiv.innerHTML = `
+            <div class="solution-card" style="border-left-color: #e74c3c;">
+                <p class="warning">⚠️ 你的硬幣總價值 (${totalPossibleSum}) 不足以填滿預算 (${budget})。</p>
+                <p>建議：全數繳交即可。</p>
+            </div>`;
+        return;
+    }
+
+    let validCombos = [];
+    let iterations = 0;
+    const MAX_ITERATIONS = 500000; // 防止極端情況卡死瀏覽器
+
+    // 深度優先搜尋 (DFS) 尋找所有剛好超過或等於預算的組合
+    function dfs(index, currentSum, currentCombo) {
+        if (iterations > MAX_ITERATIONS) return;
+
+        // 如果已經達到或超過預算，記錄下來並停止往更深層加硬幣
+        if (currentSum >= budget) {
+            validCombos.push({
+                combo: [...currentCombo],
+                waste: currentSum - budget,
+                sum: currentSum
+            });
+            return;
+        }
+
+        // 如果硬幣種類用完卻還沒達到預算，回溯
+        if (index >= 5) return;
+
+        let val = effValues[index];
+        let maxAvailable = counts[index];
+        
+        // 貪婪優化：計算「至少」還需要幾個當前硬幣才能達到預算
+        let needed = Math.ceil((budget - currentSum) / val);
+        let maxToTry = Math.min(maxAvailable, needed);
+
+        // 從最大可能數量開始往下嘗試
+        for (let q = maxToTry; q >= 0; q--) {
+            currentCombo[index] = q;
+            iterations++;
+            dfs(index + 1, currentSum + q * val, currentCombo);
+        }
+        currentCombo[index] = 0; // 回溯恢復
+    }
+
+    // 執行計算
+    dfs(0, 0, [0, 0, 0, 0, 0]);
+
+    if (validCombos.length === 0) {
+        resultsDiv.innerHTML = '<p class="warning">找不到合適的組合。</p>';
+        return;
+    }
+
+    // 排序演算法：1. 浪費金額越少越好 -> 2. 使用的硬幣總數越少越好（省格子省點擊）
+    validCombos.sort((a, b) => {
+        if (a.waste !== b.waste) return a.waste - b.waste;
+        let itemsA = a.combo.reduce((acc, val) => acc + val, 0);
+        let itemsB = b.combo.reduce((acc, val) => acc + val, 0);
+        return itemsA - itemsB;
+    });
+
+    // 過濾掉重複的結果 (以字串做 Key)
+    let uniqueCombos = [];
+    let seen = new Set();
+    for (let c of validCombos) {
+        let key = c.combo.join(',');
+        if (!seen.has(key)) {
+            seen.add(key);
+            uniqueCombos.push(c);
+            if (uniqueCombos.length >= 3) break; // 只取 Top 3
+        }
+    }
+
+    // 渲染結果畫面
+    resultsDiv.innerHTML = '';
+    const labels = ['白金幣 (10,000)', '金幣 (2,500)', '銀幣 (500)', '銅幣 (100)', '錫幣 (25)'];
+    
+    uniqueCombos.forEach((c, index) => {
+        let html = `
+        <div class="solution-card">
+            <h3>Top ${index + 1} 方案 🏆 (溢出浪費: ${c.waste} 價值)</h3>
+            <p style="margin-top: 0; color: #555;">總提交價值: <b>${c.sum}</b> / ${budget}</p>
+            <ul>`;
+        
+        c.combo.forEach((qty, i) => {
+            if (qty > 0) {
+                html += `<li>繳交 <b>${qty}</b> 個 ${labels[i]}</li>`;
+            }
+        });
+        
+        html += `</ul></div>`;
+        resultsDiv.innerHTML += html;
+    });
+}
+</script>
+
+</body>
+</html>
