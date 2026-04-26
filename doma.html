@@ -53,6 +53,42 @@
 </div>
 
 <script>
+const inputIds = ['c10000', 'c2500', 'c500', 'c100', 'c25', 'budget', 'ratio'];
+
+function saveToStorage() {
+    const data = {};
+    inputIds.forEach(id => {
+        data[id] = document.getElementById(id).value;
+    });
+    localStorage.setItem('doma_calculator_data', JSON.stringify(data));
+}
+
+function loadFromStorage() {
+    const dataStr = localStorage.getItem('doma_calculator_data');
+    if (dataStr) {
+        try {
+            const data = JSON.parse(dataStr);
+            inputIds.forEach(id => {
+                if (data[id] !== undefined) {
+                    document.getElementById(id).value = data[id];
+                }
+            });
+            // 載入後自動計算一次
+            calculate();
+        } catch (e) {
+            console.error('Failed to parse storage data', e);
+        }
+    }
+}
+
+// 綁定輸入事件
+window.addEventListener('DOMContentLoaded', () => {
+    inputIds.forEach(id => {
+        document.getElementById(id).addEventListener('input', saveToStorage);
+    });
+    loadFromStorage();
+});
+
 function calculate() {
     // 取得輸入值
     const counts = [
